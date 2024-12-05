@@ -1,1 +1,40 @@
+vendas = [
+    {'produto': 'arroz', 'quantidade': 5, 'preço': 10},
+    {'produto': 'feijao', 'quantidade': 3, 'preço': 8},
+    {'produto': 'macarrao', 'quantidade': 2, 'preço': 6},
+    {'produto': 'macarrao', 'quantidade': 4, 'preço': 6},
+]
+
+def total_de_vendas(vendas):
+    total = 0
+    for venda in vendas:
+        total += venda['quantidade'] * venda['preço']
+    return total
+
+def calcular_min_max (vendas):
+    dic_min_max = {}
+    for item in vendas:
+        produto = item ['produto']
+        quant = item ['quantidade']
+
+    if produto in dic_min_max:
+        dic_min_max ['produto'] += quant
+    else:
+        dic_min_max[produto] = quant
+ 
+produto_mais_vendido = max(dic_min_max, key=dic)
+
+
+
+
+
+    
+
+
+        
+print(total_de_vendas(vendas))
+
+     
+
+
 
