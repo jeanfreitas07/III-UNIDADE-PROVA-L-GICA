@@ -1,0 +1,204 @@
+import tkinter as tk
+from tkinter import messagebox, filedialog
+from tkinter import simpledialog
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from datetime import datetime
+
+
+class SistemaGestaoEscolar:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Sistema de Gestão Escolar")
+        self.root.geometry("900x600")
+        self.root.configure(bg="#f5f5f5")
+
+        self.usuarios = {}
+        self.usuario_atual = None
+        self.materias = {}  # {materia: {nota1, nota2, nota3, media}}
+        self.foto_usuario = None  # Foto do usuário
+
+        self.carregar_dados()  # Carregar dados de um arquivo
+        self.tela_login()
+
+    def carregar_dados(self):
+        # Tentar carregar as matérias e usuários de um arquivo
+        try:
+            with open("materias.txt", "r") as arquivo:
+                for linha in arquivo:
+                    materia, nota1, nota2, nota3, media = linha.strip().split(",")
+                    self.materias[materia] = {
+                        "nota1": float(nota1),
+                        "nota2": float(nota2),
+                        "nota3": float(nota3),
+                        "media": float(media)
+                    }
+        except FileNotFoundError:
+            # Arquivo não encontrado, significa que é a primeira vez que o programa roda
+            self.materias = {}
+
+        try:
+            with open("usuarios.txt", "r") as arquivo:
+                for linha in arquivo:
+                    usuario, senha = linha.strip().split(",")
+                    self.usuarios[usuario] = senha
+        except FileNotFoundError:
+            # Arquivo de usuários não encontrado
+            self.usuarios = {}
+
+    def salvar_dados(self):
+        # Salvar as matérias no arquivo
+        with open("materias.txt", "w") as arquivo:
+            for materia, notas in self.materias.items():
+                arquivo.write(f"{materia},{notas['nota1']},{notas['nota2']},{notas['nota3']},{notas['media']}\n")
+
+        # Salvar os usuários no arquivo
+        with open("usuarios.txt", "w") as arquivo:
+            for usuario, senha in self.usuarios.items():
+                arquivo.write(f"{usuario},{senha}\n")
+
+    def limpar_tela(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+    def tela_login(self):
+        self.limpar_tela()
+        frame = tk.Frame(self.root, bg="#ffffff", bd=2, relief="solid")
+        frame.place(relx=0.5, rely=0.5, anchor="center", width=400, height=300)
+
+        tk.Label(frame, text="Bem-vindo!", font=("Arial", 18, "bold"), bg="#ffffff").pack(pady=10)
+        tk.Label(frame, text="Usuário:", bg="#ffffff").pack()
+        self.entrada_usuario = tk.Entry(frame, width=30)
+        self.entrada_usuario.pack(pady=5)
+
+        tk.Label(frame, text="Senha:", bg="#ffffff").pack()
+        self.entrada_senha = tk.Entry(frame, show="*", width=30)
+        self.entrada_senha.pack(pady=5)
+
+        tk.Button(frame, text="Login", command=self.login_usuario, bg="#4caf50", fg="white", width=15).pack(pady=10)
+        tk.Button(frame, text="Registrar", command=self.tela_registrar_usuario, bg="#2196f3", fg="white", width=15).pack()
+
+    def login_usuario(self):
+        usuario = self.entrada_usuario.get()
+        senha = self.entrada_senha.get()
+        if usuario in self.usuarios and self.usuarios[usuario] == senha:
+            self.usuario_atual = usuario
+            self.tela_perfil()
+        else:
+            messagebox.showerror("Erro", "Usuário ou senha inválidos!")
+
+    def tela_registrar_usuario(self):
+        self.limpar_tela()
+        frame = tk.Frame(self.root, bg="#ffffff", bd=2, relief="solid")
+        frame.place(relx=0.5, rely=0.5, anchor="center", width=400, height=300)
+
+        tk.Label(frame, text="Registrar Usuário", font=("Arial", 18, "bold"), bg="#ffffff").pack(pady=10)
+        tk.Label(frame, text="Usuário:", bg="#ffffff").pack()
+        self.novo_usuario_entrada = tk.Entry(frame, width=30)
+        self.novo_usuario_entrada.pack(pady=5)
+
+        tk.Label(frame, text="Senha:", bg="#ffffff").pack()
+        self.nova_senha_entrada = tk.Entry(frame, show="*", width=30)
+        self.nova_senha_entrada.pack(pady=5)
+
+        tk.Button(frame, text="Registrar", command=self.registrar_usuario, bg="#4caf50", fg="white", width=15).pack(pady=10)
+        tk.Button(frame, text="Voltar", command=self.tela_login, bg="#f44336", fg="white", width=15).pack()
+
+    def registrar_usuario(self):
+        usuario = self.novo_usuario_entrada.get()
+        senha = self.nova_senha_entrada.get()
+        if usuario and senha:
+            if usuario in self.usuarios:
+                messagebox.showerror("Erro", "Usuário já existe!")
+            else:
+                self.usuarios[usuario] = senha
+                messagebox.showinfo("Sucesso", "Usuário registrado com sucesso!")
+                self.salvar_dados()  # Salva as informações após registrar
+                self.tela_login()
+        else:
+            messagebox.showerror("Erro", "Preencha todos os campos!")
+    
+    def tela_perfil(self):
+        self.limpar_tela()
+        tk.Label(self.root, text=f"Bem-vindo, {self.usuario_atual}", font=("Arial", 18, "bold"), bg="#f5f5f5").pack(pady=10)
+        
+        tk.Button(self.root, text="Adicionar Matéria", command=self.adicionar_materia, bg="#4caf50", fg="white", width=20).pack(pady=10)
+        tk.Button(self.root, text="Carregar Foto", command=self.carregar_foto, bg="#ff9800", fg="white", width=20).pack(pady=10)
+        tk.Button(self.root, text="Gerar Relatório PDF", command=self.gerar_relatorio_pdf, bg="#9c27b0", fg="white", width=20).pack(pady=10)
+        tk.Button(self.root, text="Logout", command=self.logout, bg="#f44336", fg="white", width=10).pack(pady=10)
+
+    def adicionar_materia(self):
+        materia = simpledialog.askstring("Matéria", "Digite o nome da matéria:")
+        if materia:
+            nota1 = simpledialog.askfloat("Nota 1", "Digite a nota da Unidade 1:")
+            nota2 = simpledialog.askfloat("Nota 2", "Digite a nota da Unidade 2:")
+            nota3 = simpledialog.askfloat("Nota 3", "Digite a nota da Unidade 3:")
+
+            if None not in (nota1, nota2, nota3):
+                media = (nota1 + nota2 + nota3) / 3
+                self.materias[materia] = {"nota1": nota1, "nota2": nota2, "nota3": nota3, "media": media}
+                self.salvar_dados()  # Salva as alterações após adicionar uma matéria
+
+    def carregar_foto(self):
+        caminho = filedialog.askopenfilename(filetypes=[("Imagens", "*.jpg *.png")])
+        if caminho:
+            self.foto_usuario = caminho
+
+    def gerar_relatorio_pdf(self):
+        filepath = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
+        if not filepath:
+            return
+        
+        c = canvas.Canvas(filepath, pagesize=letter)
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(100, 750, f"Relatório do Aluno: {self.usuario_atual}")
+        c.setFont("Helvetica", 12)
+        c.drawString(100, 730, f"Data: {datetime.now().strftime('%d/%m/%Y')}")
+        
+        if self.foto_usuario:
+            c.drawImage(self.foto_usuario, 100, 600, width=100, height=100)
+        
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(100, 580, "Notas:")
+
+        # Tabela com as matérias e notas
+        y = 560
+        c.setFont("Helvetica", 10)
+        c.setStrokeColor(colors.black)
+        c.setFillColor(colors.white)
+
+        # Desenhando as linhas da tabela
+        c.rect(100, y, 400, 20, fill=1)  # Cabeçalho
+        c.rect(100, y-20, 400, len(self.materias) * 20 + 20, fill=0)  # Corpo da tabela
+
+        # Cabeçalho da tabela
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(100, y, "Matéria")
+        c.drawString(250, y, "Nota 1")
+        c.drawString(300, y, "Nota 2")
+        c.drawString(350, y, "Nota 3")
+        c.drawString(400, y, "Média Final")
+
+        y -= 20
+        c.setFont("Helvetica", 10)
+        
+        for materia, notas in self.materias.items():
+            c.drawString(100, y, materia)
+            c.drawString(250, y, f"{notas['nota1']:.2f}")
+            c.drawString(300, y, f"{notas['nota2']:.2f}")
+            c.drawString(350, y, f"{notas['nota3']:.2f}")
+            c.drawString(400, y, f"{notas['media']:.2f}")
+            y -= 20
+        
+        c.save()
+        messagebox.showinfo("Relatório PDF", f"Relatório salvo com sucesso em:\n{filepath}")
+
+    def logout(self):
+        self.salvar_dados()  # Salva os dados antes de sair
+        self.tela_login()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = SistemaGestaoEscolar(root)
+    root.mainloop()
