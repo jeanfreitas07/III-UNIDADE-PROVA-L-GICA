@@ -1,0 +1,41 @@
+Aqui está um resumo de cada biblioteca utilizada no código e suas funcionalidades:
+
+### 1. **tkinter**
+   - **Função**: Criação da interface gráfica (GUI).
+   - **Objetivo**: Usado para criar as janelas, botões, caixas de texto, e outros componentes de interface que permitem a interação do usuário com o sistema. Toda a lógica do aplicativo é feita em uma janela gráfica gerada por essa biblioteca.
+
+### 2. **messagebox (tkinter)**
+   - **Função**: Exibição de caixas de mensagens.
+   - **Objetivo**: Usado para mostrar alertas, mensagens de erro, e confirmações ao usuário. Exemplos incluem `messagebox.showinfo()` para mensagens de sucesso e `messagebox.showerror()` para erros.
+
+### 3. **filedialog (tkinter)**
+   - **Função**: Dialog para seleção de arquivos.
+   - **Objetivo**: Permite que o usuário selecione arquivos ou pastas do seu computador, como ao carregar uma foto ou ao salvar um arquivo, usando `filedialog.askopenfilename()` ou `filedialog.asksaveasfilename()`.
+
+### 4. **simpledialog (tkinter)**
+   - **Função**: Caixa de diálogo simples.
+   - **Objetivo**: Usado para solicitar entradas simples do usuário, como um texto ou número, por exemplo, para obter o nome de uma matéria ou as notas de um aluno.
+
+### 5. **reportlab**
+   - **Função**: Geração de PDFs.
+   - **Objetivo**: Usada para criar e formatar documentos em PDF. A função principal usada é `canvas.Canvas`, que permite desenhar textos, linhas, imagens e outras formas no PDF. A biblioteca também permite definir fontes, tamanhos e adicionar elementos gráficos como tabelas e imagens.
+
+### 6. **datetime**
+   - **Função**: Manipulação de datas e horários.
+   - **Objetivo**: Usada para obter a data atual e formatá-la no formato desejado, como mostrado na linha `datetime.now().strftime('%d/%m/%Y')`, que gera a data atual para ser inserida no relatório.
+
+### 7. **os**
+   - **Função**: Interação com o sistema operacional.
+   - **Objetivo**: Embora não tenha sido diretamente utilizado no código, o `os` pode ser útil para manipulação de arquivos e diretórios, como verificar se um arquivo existe ou alterar o diretório de trabalho. No caso específico deste código, seria útil para verificar a existência de arquivos antes de carregá-los.
+
+### 8. **colors (reportlab)**
+   - **Função**: Definição de cores.
+   - **Objetivo**: Usado para definir cores ao desenhar elementos gráficos no PDF, como bordas e texto. Exemplo: `colors.black` define a cor preta e `colors.white` define a cor branca para o fundo das células da tabela.
+
+### Resumo:
+- **tkinter** e suas sub-bibliotecas (`messagebox`, `filedialog`, `simpledialog`) são usadas para criar a interface gráfica e interação com o usuário.
+- **reportlab** é usada para gerar e formatar o PDF com informações das matérias e notas.
+- **datetime** fornece a data atual para ser incluída no relatório.
+- **os** (potencialmente) poderia ser usado para manipulação de arquivos no sistema, caso necessário.
+
+Essas bibliotecas são essenciais para criar uma interface de usuário amigável e gerar o relatório de notas de forma eficiente em formato PDF.
