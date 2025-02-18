@@ -1,0 +1,245 @@
+import tkinter as tk
+import json
+import os
+from fpdf import FPDF
+import matplotlib.pyplot as plt
+import bcrypt as bc
+from tkinter import messagebox
+
+# Arquivos para salvar os dados
+USUARIOS_FILE = "usuarios.json"
+GASTOS_FILE = "gastos.json"
+
+# Carregar usuários cadastrados
+if os.path.exists(USUARIOS_FILE):
+    with open(USUARIOS_FILE, "r") as file:
+        usuarios = json.load(file)
+else:
+    usuarios = {}
+
+# Carregar gastos salvos
+if os.path.exists(GASTOS_FILE):
+    with open(GASTOS_FILE, "r") as file:
+        gastos = json.load(file)
+else:
+    gastos = []
+
+# Função para cadastrar usuário
+def cadastrar_usuario():# função para cadastrar usuário
+    usuario = usuario_entry.get() #entrar usuário   
+    senha = senha_entry.get().encode('utf-8') #entar senha 
+    print(senha) #imprimir senha terminal 
+    senha_hash = bc.hashpw(senha, bc.gensalt())#cripitar senha  
+    print(senha_hash)#imprimir senha cripitada
+    
+    if usuario in usuarios:# se usuário que entrou ta listas de usuários 
+        erro_label.config(text="Usuário já existe!", fg="red")#se já existe, erro, usuário já existe 
+    elif usuario == "": #se o usário não digitar nada, mensagem digite um usário válido
+        erro_label.config(text="Digite um usuário válido!", fg="red")
+    else:
+        usuarios[usuario] = senha_hash.decode('utf-8')  # Armazene o hash no formato de string
+        with open(USUARIOS_FILE, "w") as file:
+            json.dump(usuarios, file, indent=4)
+        erro_label.config(text="Cadastro realizado! Faça login.", fg="green")
+
+
+# Função para verificar login
+def verificar_login():
+    usuario = usuario_entry.get() #entar o usuário          
+    senha = senha_entry.get().encode('utf-8')# forma interpretação    
+    print (senha)#printa senha no terminal 
+    if usuario in usuarios:
+        hash = usuarios[usuario].encode('utf-8') 
+        print(hash)
+        if bc.checkpw(senha, hash): 
+            login_janela.destroy()
+            abrir_tela_principal(usuario)
+        else:
+            erro_label.config(text="Login ou senha incorretos!", fg="red")
+    else:
+        erro_label.config(text="Login ou senha incorretos!", fg="red")
+
+
+# Função para abrir a tela principal
+def abrir_tela_principal(usuario):
+    global root, categoria_var, valor_entry, lista, bem_vindo_label
+
+    
+    root = tk.Tk() #abertura de janela 
+    root.title("GERENCIADOR DE GASTOS") #titulo da janela 
+    root.geometry("1600x900") #tamanho da janela
+    root.config(bg="yellow")# cor da janela 
+
+    bem_vindo_label = tk.Label(root, text=f"BEM-VINDO, {usuario}!", font=("Arial black", 20),bg="YELLOW") 
+    bem_vindo_label.pack(pady=10)               
+    frame_top = tk.Frame(root, bg="yellow", width=200, height=100)
+    frame_top.pack(pady=10)
+
+    categoria_label = tk.Label(frame_top, text="Categoria:", font=("Arial black", 18),bg="yellow")
+    categoria_label.grid(row=0, column=0, padx=5, pady=5)
+
+    # OptionMenu para selecionar GASTOS'
+    categoria_var = tk.StringVar()
+    categoria_var.set("outros")  # Definindo 'SELECIONAR' como valor inicial
+    categoria_menu = tk.OptionMenu(frame_top, categoria_var, "lazer", "alimentação", "transporte", "saúde", "moradia","internet", "luz","aguá",)
+    
+    # CONTAINER DE CATEGORIA
+    categoria_menu.config(font=("Arial", 10), width=15, height=2,bg="gray")
+    categoria_menu['menu'].config(font=("Arial", 10),bg="gray")
+    categoria_menu.config(font=("Arial", 10), width=15, height=2,bg="gray")
+    categoria_menu.grid(row=0, column=1, padx=8, pady=8)
+    
+    # CONTAINER DE VALOR
+    valor_label = tk.Label(frame_top, text="Valor (R$):", font=("Arial black", 18),bg="yellow")
+    valor_label.grid(row=1, column=0, padx=5, pady=5,)
+    valor_entry = tk.Entry(frame_top, font=("Arial", 12),bg="gray")
+    valor_entry.grid(row=1, column=1, padx=5, pady=5)
+
+    # BOTÃO ADICIONAR GASTOS
+    add_button = tk.Button(root, text="ADICIONAR O GASTO", font=("Arialblack", 15), command=adicionar_gasto,bg="blue",fg="white")
+    add_button.pack(pady=5)
+
+    # CONTAINER DE LISTA E VALORES
+    lista = tk.Listbox(root, font=("Arial", 15), width=80, height=15,bg="GRAY")
+    lista.pack(pady=10)
+
+    # BOTÃO DE APAGAR PDF
+    pdf_button = tk.Button(root, text="GERAR PDF", font=("Arialblack", 12), command=gerar_pdf,bg="blue",fg="white")
+    pdf_button.pack(pady=5)
+
+    # BOTÃO DE APGAR TUDO
+    apagar_button = tk.Button(root, text="APAGAR TODOS", font=("Arialblack", 12), command=apagar_todos,bg="blue",fg="white")
+    apagar_button.pack(pady=5)
+
+    atualizar_lista()
+    root.mainloop()
+
+# Função para adicionar gasto
+def adicionar_gasto():
+    categoria = categoria_var.get()  # Obtém o valor selecionado no OptionMenu
+    valor = valor_entry.get()
+   
+    # Verificar se o valor é um número decimal válido
+    if categoria != "" and valor.replace(",", "").replace(".", "").isdigit() and valor.count(",") <= 1:
+        valor = valor.replace(",", ".")  # Trocar a vírgula por ponto
+        valor = f"{float(valor):.2f}".replace(".", ",")  # Formatar como R$ XX,XX
+
+        gastos.append({"categoria": categoria, "valor": valor})
+        with open(GASTOS_FILE, "w") as file:
+            json.dump(gastos, file, indent=4)
+        atualizar_lista()
+
+        valor_entry.delete(0, tk.END)
+    else:
+        erro_label.config(text="Valor inválido! Digite um valor numérico.", fg="red")
+
+
+# Função para atualizar lista
+def atualizar_lista():
+    lista.delete(0, tk.END)
+    for gasto in gastos:
+        lista.insert(tk.END, f"{gasto['categoria']}: R$ {gasto['valor']}")
+
+# Função para gerar PDF
+# Função para gerar o PDF com o gráfico de pizza
+def gerar_pdf():
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, "Relatório de Gastos", ln=True, align='C')
+    pdf.ln(10)
+    
+    # Adicionar os gastos no relatório
+    for gasto in gastos:
+        pdf.cell(200, 10, f"Categoria: {gasto['categoria']} - Valor: R$ {gasto['valor']}", ln=True)
+
+    # Gerar gráfico de pizza
+    gerar_grafico_pizza()
+
+    # Adicionar o gráfico de pizza ao PDF
+    pdf.ln(10)  # Espaço entre o texto e o gráfico
+    pdf.image("grafico_pizza.png", x=10, y=pdf.get_y(), w=180)  # Adicionando a imagem do gráfico
+
+    pdf.output("relatorio_gastos.pdf")
+    print("PDF gerado!")
+    messagebox.showinfo("Sucesso", "PDF gerado com sucesso!")
+
+
+# Função para gerar o gráfico de pizza e salvar como imagem
+def gerar_grafico_pizza():
+    # Contagem dos valores por categoria
+    categorias = {}
+    for gasto in gastos:
+        categoria = gasto['categoria']
+        valor = float(gasto['valor'].replace(",", "."))  # Converter para float
+        if categoria in categorias:
+            categorias[categoria] += valor
+        else:
+            categorias[categoria] = valor
+
+    # Preparando dados para o gráfico
+    labels = list(categorias.keys())  # Categorias
+    valores = list(categorias.values())  # Valores totais por categoria
+
+    # Criando o gráfico de pizza
+    plt.figure(figsize=(6, 6))
+    plt.pie(valores, labels=labels, autopct=lambda pct: f"R$ {pct / 100. * sum(valores):,.2f}", startangle=90, colors=['BLUE','YELLOW','RED','GREEN'])
+    plt.axis('equal')  # Para deixar o gráfico de pizza circular
+
+    # Salvando a imagem
+    plt.savefig("grafico_pizza.png")  # Salva o gráfico como uma imagem no formato PNG
+    plt.close()  # Fecha o gráfico após salvar
+
+
+# Função para apagar todos os gastos
+def apagar_todos():
+    global gastos
+    gastos = []
+    with open(GASTOS_FILE, "w") as file:
+        json.dump(gastos, file, indent=4)
+    atualizar_lista()
+
+# TELA DE LOGIN
+login_janela = tk.Tk()
+login_janela.title("Login")
+login_janela.geometry("1600x900")  #TAMANHO DA JANELA
+login_janela.configure(bg="yellow")
+
+#TITULO E BEM VINDO
+login_label = tk.Label(login_janela, text="BEM VINDO AO GERENCIADOR DE GASTOS !FAÇA O LOGIN.", font=("ARIALBLACK", 30), bg="yellow", fg="black")
+login_label.pack(pady=15)
+
+#CREDITOS
+elaborado_label = tk.Label(login_janela, text="ELABORADO POR JEAN FREITAS E DANTE BANEGA", font=("Arial", 14), bg="yellow", fg="blue")
+elaborado_label.pack(pady=10)
+
+#CONTAINER USUARIO E SENHA
+frame_login = tk.Frame(login_janela, bg="yellow", padx=60, pady=60,)  # Container cinza maior
+frame_login.pack(pady=20)
+
+#CONTAINER DE USUARIO 
+usuario_label = tk.Label(frame_login, text="USUÁRIO:", font=("ArialBlack", 18), bg="yellow", fg="black")
+usuario_label.grid(row=0, column=0, padx=5, pady=5)
+usuario_entry = tk.Entry(frame_login, font=("Arial", 16))
+usuario_entry.grid(row=0, column=1, padx=5, pady=5)
+
+#CONTAINER DE SENHA
+senha_label = tk.Label(frame_login, text="SENHA:", font=("ArialBlack", 18), bg="yellow", fg="black")
+senha_label.grid(row=1, column=0, padx=5, pady=5)
+senha_entry = tk.Entry(frame_login, font=("Arial", 16), show="*")
+senha_entry.grid(row=1, column=1, padx=5, pady=5)
+
+#MENSAGEM DE ERRO
+erro_label = tk.Label(login_janela, text="", font=("Arial", 18), bg="yellow", fg="red")
+erro_label.pack()
+
+#BOTÃO DE ENTRAR 
+login_button = tk.Button(login_janela, text="Entrar", font=("Arial", 16), bg="blue", fg="white", width=15, command=verificar_login)  
+login_button.pack(pady=5)
+
+## BOTÃO DE CADASTRO
+cadastro_button = tk.Button(login_janela, text="Cadastrar", font=("Arial", 16), bg="blue", fg="white", width=15, command=cadastrar_usuario)  
+cadastro_button.pack(pady=5)  # <-- Adicione esta linha
+
+
+login_janela.mainloop()#JANELA NAO FECHAR 
